@@ -1,0 +1,24 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: targetforge-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: targetforge
+      POSTGRES_PASSWORD: targetforge
+      POSTGRES_DB: targetforge
+    ports:
+      # Host port 5434, not the default 5432 — this machine already runs a
+      # native Postgres service on 5432, and TrialReady's own Docker
+      # Postgres already claims 5433.
+      - "5434:5432"
+    volumes:
+      - targetforge-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U targetforge -d targetforge"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  targetforge-pgdata:

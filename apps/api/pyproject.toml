@@ -1,0 +1,80 @@
+[project]
+name = "targetforge-api"
+version = "0.1.0"
+description = "TargetForge — end-to-end sequencing-to-insight drug target discovery pipeline"
+requires-python = ">=3.11,<3.13"
+dependencies = [
+    "fastapi==0.115.0",
+    "python-multipart==0.0.12",
+    "uvicorn[standard]==0.30.6",
+    "pydantic[email]==2.9.2",
+    "pydantic-settings==2.5.2",
+    "sqlalchemy==2.0.35",
+    "alembic==1.13.3",
+    "asyncpg==0.29.0",
+    "psycopg[binary]==3.2.2",
+    "semantic-kernel==1.9.0",
+    "azure-identity==1.17.1",
+    "azure-storage-blob==12.23.1",
+    "azure-batch==14.2.0",
+    "azure-keyvault-secrets==4.8.0",
+    "azure-monitor-opentelemetry==1.6.4",
+    "python-jose[cryptography]==3.3.0",
+    "httpx==0.27.2",
+    "structlog==24.4.0",
+    "tenacity==9.0.0",
+    "scipy==1.14.1",
+    "numpy==2.1.2",
+    "PyYAML==6.0.2",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest==8.3.3",
+    "pytest-asyncio==0.24.0",
+    "pytest-cov==5.0.0",
+    "ruff==0.6.9",
+    "mypy==1.11.2",
+    "types-PyYAML==6.0.12.20240917",
+]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+addopts = "-ra"
+
+[tool.ruff]
+# 120, not the more common 100: this codebase's docstrings/comments are
+# deliberately prose-heavy (explaining *why*, not just *what* — see any
+# agent module), and 100 was clipping single well-formed sentences into an
+# awkward wrap far more often than it was catching a genuinely too-dense
+# line of code.
+line-length = 120
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "C4"]
+# B008: flags `Depends(...)` in a FastAPI parameter default — that's the
+# framework's documented dependency-injection idiom, not a real "mutable
+# default argument" bug; FastAPI's own docs recommend this exact pattern.
+ignore = ["B008"]
+
+[tool.mypy]
+python_version = "3.11"
+warn_unused_ignores = true
+
+# These three ship no inline types and no stubs package (scipy's numerical
+# core, python-jose, and the azure-batch aio surface). Silencing
+# import-untyped/import-not-found here is scoped to exactly these modules,
+# not a blanket relaxation of the rest of the codebase's type checking.
+[[tool.mypy.overrides]]
+module = ["scipy.*", "jose.*", "azure.batch.*"]
+ignore_missing_imports = true

@@ -1,0 +1,81 @@
+name: CD
+
+# Deliberately manual/tag-triggered, not on every main push — see
+# docs/runbook.md. Promote to automatic on `main` once there's a staging
+# environment and a smoke-test gate worth trusting.
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Target environment"
+        required: true
+        type: choice
+        options: [dev, staging, prod]
+  push:
+    tags: ["v*"]
+
+permissions:
+  id-token: write # required for OIDC federated login — no client secret stored anywhere
+  contents: read
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    outputs:
+      image_tag: ${{ steps.meta.outputs.image_tag }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: meta
+        run: echo "image_tag=${GITHUB_SHA::12}" >> "$GITHUB_OUTPUT"
+
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Log in to ACR (via Entra, not admin credentials)
+        run: az acr login --name ${{ secrets.ACR_NAME }}
+
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/api/Dockerfile
+          push: true
+          tags: ${{ secrets.ACR_NAME }}.azurecr.io/targetforge-api:${{ steps.meta.outputs.image_tag }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    environment: ${{ inputs.environment || 'dev' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Deploy Bicep
+        run: |
+          ENV="${{ inputs.environment || 'dev' }}"
+          az deployment group create \
+            --resource-group "rg-targetforge-${ENV}" \
+            --template-file infra/bicep/main.bicep \
+            --parameters infra/bicep/parameters/${ENV}.bicepparam \
+            --parameters postgresAdminPassword="${{ secrets.POSTGRES_ADMIN_PASSWORD }}" \
+            --parameters containerImage="${{ secrets.ACR_NAME }}.azurecr.io/targetforge-api:${{ needs.build-and-push.outputs.image_tag }}"
+
+      - name: Run database migrations
+        run: |
+          # Runs as a one-off Container Apps job against the freshly deployed
+          # image — keeps migration execution identical across environments
+          # instead of relying on a developer's laptop having DB network access.
+          ENV="${{ inputs.environment || 'dev' }}"
+          az containerapp job start \
+            --name "tf-${ENV}-migrate" \
+            --resource-group "rg-targetforge-${ENV}" \
+            || echo "::warning::Migration job not yet provisioned — run 'alembic upgrade head' manually against this environment once, see docs/runbook.md"
