@@ -42,6 +42,23 @@ Build context must be the repo root (`-f apps/api/Dockerfile .`), not
 `apps/api/` — the image needs both `apps/api/src` and the top-level
 `data/knowledge/pathways.yaml`.
 
+## Frontend local development
+
+```
+cp apps/web/.env.example apps/web/.env.local   # points at http://localhost:8000 by default
+cd apps/web
+npm install
+npm run dev
+```
+Open `http://localhost:5173`. Submitting the form POSTs to the API above,
+then polls `GET /api/v1/runs/{id}` every few seconds until the run finishes,
+rendering the pipeline-stage grid, ranked-target table, and the full cited
+markdown report. If the API is running on a different port/host, edit
+`VITE_API_BASE_URL` in `.env.local` — and if the web dev server's own origin
+differs from the API's `CORS_ALLOWED_ORIGINS` (`config.py`), the browser will
+reject every request with a CORS error, not a network error, so check that
+first if the app loads but shows "Could not reach the TargetForge API."
+
 ## First-time Azure environment setup
 
 1. `az group create -n rg-targetforge-dev -l eastus2`
@@ -57,8 +74,9 @@ Build context must be the repo root (`-f apps/api/Dockerfile .`), not
 5. First deploy uses the placeholder `mcr.microsoft.com/k8se/quickstart`
    image (`main.bicep`'s `containerImage` default) so the environment stands
    up before CI has published a real image.
-6. Run the CD workflow (once written — see "Not yet built" below) or deploy
-   manually: `az deployment group create -g rg-targetforge-dev -f infra/bicep/main.bicep -p infra/bicep/parameters/dev.bicepparam`.
+6. Run `.github/workflows/cd.yml` (`workflow_dispatch`, `environment: dev`)
+   once the Azure secrets above are in place, or deploy manually:
+   `az deployment group create -g rg-targetforge-dev -f infra/bicep/main.bicep -p infra/bicep/parameters/dev.bicepparam`.
 7. **Known first-deploy quirk** (same as TrialReady's stack): the container
    app's managed identity is granted `AcrPull` in the same deployment that
    tries to pull the image with it. If the first revision fails with an
@@ -99,8 +117,9 @@ additive/backward-compatible for the same reason as TrialReady's stack.
 
 ## Not yet built (tracked here so it isn't silently assumed done)
 
-- CI (`.github/workflows/ci.yml`) and CD (`cd.yml`) pipelines — TrialReady's
-  are a direct template to adapt once this repo is pushed to GitHub.
-- A frontend — not yet requested for this project.
+- Static Web Apps (or equivalent) hosting for the frontend — `apps/web` is
+  built and proven locally (real API, real browser, Playwright-verified) but
+  has no `infra/bicep` module or CD job deploying it yet; TrialReady's
+  `static-web-app.bicep` + `web-cd.yml` are a direct template to adapt.
 - The real upload path and queue-based execution model in
   `docs/scaling-to-real-genomes.md`.

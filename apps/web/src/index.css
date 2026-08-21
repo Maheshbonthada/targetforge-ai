@@ -1,0 +1,470 @@
+:root {
+  --brand: #1f6f5c;
+  --brand-soft: #e5f3ef;
+  --brand-ink: #123f34;
+
+  --success: #1f7a4d;
+  --success-soft: #e5f3ea;
+  --warning: #92600a;
+  --warning-soft: #f7ecd9;
+  --danger: #b3261e;
+  --danger-soft: #fbe6e4;
+
+  --ink: #14202b;
+  --ink-soft: #4b5a68;
+  --ink-faint: #7c8a97;
+  --paper: #f4f6f7;
+  --surface: #ffffff;
+  --border: #dde3e6;
+
+  --radius: 8px;
+  --shadow: 0 1px 2px rgba(20, 32, 43, 0.06), 0 4px 16px -8px rgba(20, 32, 43, 0.12);
+
+  color-scheme: light;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-size: 15px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: var(--brand);
+}
+
+button {
+  font: inherit;
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- Layout --- */
+
+.app-shell {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.9rem 1.5rem;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+
+.app-header .brand {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.app-header .brand .mark {
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  background: var(--brand);
+  color: white;
+  display: grid;
+  place-items: center;
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+.app-header .env-pill {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  border: 1px solid var(--border);
+  border-radius: 100px;
+  padding: 0.2rem 0.6rem;
+}
+
+.app-main {
+  flex: 1;
+  width: 100%;
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem 4rem;
+}
+
+.breadcrumb {
+  font-size: 0.85rem;
+  color: var(--ink-faint);
+  margin-bottom: 0.75rem;
+}
+
+.breadcrumb a {
+  color: var(--ink-soft);
+  text-decoration: none;
+}
+
+.breadcrumb a:hover {
+  text-decoration: underline;
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.page-header h1 {
+  font-size: 1.4rem;
+  margin: 0 0 0.25rem;
+  word-break: break-word;
+}
+
+.page-header .subtitle {
+  color: var(--ink-soft);
+  font-size: 0.92rem;
+  margin: 0;
+}
+
+/* --- Buttons & forms --- */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  padding: 0.55rem 0.95rem;
+  font-weight: 600;
+  font-size: 0.88rem;
+  cursor: pointer;
+  transition: background 0.12s ease;
+  flex-shrink: 0;
+}
+
+.btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background: var(--brand);
+  color: white;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--brand-ink);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  margin-bottom: 0.9rem;
+}
+
+.field-narrow {
+  max-width: 320px;
+}
+
+.field label {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.field input,
+.field textarea {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.55rem 0.7rem;
+  font-size: 0.92rem;
+  font-family: inherit;
+  color: var(--ink);
+  background: var(--surface);
+  resize: vertical;
+}
+
+.field input:focus-visible,
+.field textarea:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 1px;
+}
+
+.form-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.25rem;
+  box-shadow: var(--shadow);
+  margin-bottom: 1.5rem;
+}
+
+.form-card h2 {
+  font-size: 1rem;
+  margin: 0 0 1rem;
+}
+
+.form-actions {
+  display: flex;
+  gap: 0.6rem;
+  margin-top: 0.4rem;
+}
+
+/* --- Cards / lists --- */
+
+.card-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.entity-card {
+  display: block;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 1rem 1.15rem;
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 0.12s ease;
+}
+
+.entity-card:hover {
+  border-color: var(--brand);
+}
+
+.entity-card .title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.entity-card .title {
+  font-weight: 700;
+  color: var(--ink);
+  margin-bottom: 0.15rem;
+}
+
+.entity-card .meta {
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+}
+
+.empty-state {
+  text-align: center;
+  color: var(--ink-faint);
+  padding: 3rem 1rem;
+  border: 1px dashed var(--border);
+  border-radius: 12px;
+}
+
+.error-banner {
+  background: var(--danger-soft);
+  color: var(--danger);
+  border-radius: var(--radius);
+  padding: 0.75rem 1rem;
+  font-size: 0.88rem;
+  margin-bottom: 1rem;
+}
+
+.loading-line {
+  color: var(--ink-faint);
+  font-size: 0.9rem;
+}
+
+/* --- Chips / pills --- */
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.18rem 0.55rem;
+  border-radius: 100px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.pill-small {
+  font-size: 0.7rem;
+  padding: 0.12rem 0.45rem;
+}
+
+.pill-success {
+  background: var(--success-soft);
+  color: var(--success);
+}
+.pill-warning {
+  background: var(--warning-soft);
+  color: var(--warning);
+}
+.pill-danger {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+.pill-neutral {
+  background: var(--paper);
+  color: var(--ink-soft);
+  border: 1px solid var(--border);
+}
+
+/* --- Pipeline stage grid --- */
+
+.stage-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 0.5rem;
+}
+
+.stage-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.6rem 0.7rem;
+}
+
+.stage-name {
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: var(--ink-soft);
+  text-transform: capitalize;
+}
+
+/* --- Tables --- */
+
+.table-scroll {
+  overflow-x: auto;
+}
+
+.doc-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.doc-table th {
+  text-align: left;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ink-faint);
+  padding: 0.6rem 0.9rem;
+  background: var(--paper);
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+.doc-table td {
+  padding: 0.65rem 0.9rem;
+  border-bottom: 1px solid var(--border);
+  color: var(--ink);
+}
+
+.doc-table tr:last-child td {
+  border-bottom: none;
+}
+
+/* --- Report / markdown --- */
+
+.report-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.5rem 1.75rem;
+  box-shadow: var(--shadow);
+}
+
+.markdown h2 {
+  font-size: 1.25rem;
+  margin: 0 0 0.75rem;
+}
+
+.markdown h3 {
+  font-size: 1.05rem;
+  margin: 1.5rem 0 0.5rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border);
+}
+
+.markdown h3:first-child {
+  border-top: none;
+  padding-top: 0;
+  margin-top: 0;
+}
+
+.markdown h4 {
+  font-size: 0.92rem;
+  margin: 1rem 0 0.35rem;
+  color: var(--ink-soft);
+}
+
+.markdown p {
+  margin: 0 0 0.75rem;
+}
+
+.markdown .md-italic {
+  font-style: italic;
+  color: var(--ink-faint);
+  font-size: 0.85rem;
+}
+
+.markdown blockquote {
+  margin: 0.5rem 0 0.75rem;
+  padding: 0.5rem 0.9rem;
+  border-left: 3px solid var(--brand);
+  background: var(--brand-soft);
+  color: var(--ink-soft);
+  font-size: 0.88rem;
+  border-radius: 0 6px 6px 0;
+}
+
+.markdown ul {
+  margin: 0 0 0.75rem;
+  padding-left: 1.3rem;
+}
+
+.markdown li {
+  margin-bottom: 0.3rem;
+  font-size: 0.9rem;
+}
+
+section + section {
+  margin-top: 2rem;
+}
+
+section > h2 {
+  font-size: 1rem;
+  margin: 0 0 0.75rem;
+}

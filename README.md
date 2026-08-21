@@ -13,16 +13,17 @@ See [`ARCHITECTURE.md`](ARCHITECTURE.md) for the full design and
 
 ## Status
 
-**Pre-launch codebase, proven end-to-end.** The candidate-gene-list entry
-point is fully real and has been run through the actual HTTP API against
-live PubMed, DGIdb, ClinicalTrials.gov, Ensembl VEP, and OpenAI — not
-mocked. The full FASTQ-to-report pipeline needs real alignment/variant-
-calling compute this repo doesn't provision by default; see
-[`docs/scaling-to-real-genomes.md`](docs/scaling-to-real-genomes.md) for
-exactly what's left and why. Runs on public/reference data and user-supplied
-gene lists only until [`docs/compliance-checklist.md`](docs/compliance-checklist.md)
-is fully checked off — no real subject sequencing data has touched this
-system.
+**Pre-launch codebase, proven end-to-end — backend and frontend both.** The
+candidate-gene-list entry point is fully real and has been exercised through
+the actual HTTP API *and* through the React frontend in a real browser
+(Playwright-verified), against live PubMed, DGIdb, ClinicalTrials.gov,
+Ensembl VEP, and OpenAI — not mocked. The full FASTQ-to-report pipeline needs
+real alignment/variant-calling compute this repo doesn't provision by
+default; see [`docs/scaling-to-real-genomes.md`](docs/scaling-to-real-genomes.md)
+for exactly what's left and why. Runs on public/reference data and
+user-supplied gene lists only until
+[`docs/compliance-checklist.md`](docs/compliance-checklist.md) is fully
+checked off — no real subject sequencing data has touched this system.
 
 ## Repository layout
 
@@ -36,6 +37,7 @@ apps/api/          FastAPI service — the product's backend
     api/routers/     Thin HTTP layer (POST/GET /api/v1/runs)
     db/              SQLAlchemy models + Alembic migrations
   tests/
+apps/web/           React + TypeScript SPA (Vite) — submit runs, watch pipeline stages, read the cited report
 data/knowledge/     Curated pathway gene sets (config-as-code)
 infra/bicep/        All Azure infrastructure, as code
 docs/               Cost model, compliance checklist, runbook, scaling notes
@@ -63,6 +65,15 @@ curl -X POST http://localhost:8000/api/v1/runs \
 ```
 Poll `GET /api/v1/runs/{id}` until `status` is `succeeded`; `report_json`
 holds the full cited ranking.
+
+Frontend:
+```
+cp apps/web/.env.example apps/web/.env.local
+cd apps/web && npm install && npm run dev
+```
+Open `http://localhost:5173`. It talks straight to the API above — submit a
+gene list, watch the pipeline stages update, read the cited report once it
+finishes. No build step needed to see backend changes reflected.
 
 ## Running tests
 

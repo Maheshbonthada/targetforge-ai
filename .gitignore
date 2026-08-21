@@ -19,3 +19,7 @@ node_modules/
 
 .vscode/
 .idea/
+
+# frontend build/env
+apps/web/dist/
+apps/web/.env.local
