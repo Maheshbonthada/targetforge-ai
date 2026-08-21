@@ -8,7 +8,7 @@ dependencies = [
     "python-multipart==0.0.32",  # 0.0.12 had 6 known CVEs — see PYSEC-2026-1852 etc.
     "uvicorn[standard]==0.30.6",
     "pydantic[email]==2.9.2",
-    "pydantic-settings==2.5.2",
+    "pydantic-settings==2.15.0",
     "sqlalchemy==2.0.35",
     "alembic==1.13.3",
     "asyncpg==0.29.0",
