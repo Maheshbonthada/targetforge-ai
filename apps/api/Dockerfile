@@ -8,7 +8,7 @@
 # fast cold start on Container Apps' consumption plan, no build toolchain
 # shipped to production.
 
-FROM python:3.11-slim AS builder
+FROM python:3.14-slim AS builder
 WORKDIR /build
 
 RUN apt-get update && apt-get install -y --no-install-recommends build-essential \
@@ -18,7 +18,7 @@ COPY apps/api/pyproject.toml ./
 COPY apps/api/src ./src
 RUN pip install --no-cache-dir --prefix=/install .
 
-FROM python:3.11-slim AS runtime
+FROM python:3.14-slim AS runtime
 
 # Non-root user — the container never needs root.
 RUN groupadd --gid 1000 app && useradd --uid 1000 --gid app --shell /bin/bash --create-home app
