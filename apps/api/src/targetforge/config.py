@@ -32,6 +32,29 @@ class Settings(BaseSettings):
     db_pool_size: int = 5
     db_max_overflow: int = 5
 
+    # --- Pipeline run execution ---
+    # Hard wall-clock ceiling on one background-task run (see
+    # api/routers/runs.py's `_execute_run`). Each external client already has
+    # its own per-call timeout+retry (external/*.py), but nothing previously
+    # bounded the *whole* run — a stuck run held its background task (and,
+    # implicitly, the request-serving replica's resources) forever, showing
+    # up as a permanently "running" row with no automatic recovery. 25 genes
+    # x 7 LLM-calling agents x tenacity's up-to-3-retries-at-8s-backoff worst
+    # case is comfortably under 10 minutes; this is set well above the
+    # expected case, not tuned to the happy path.
+    run_timeout_seconds: int = 900
+    # On startup, any run still marked RUNNING from a previous process
+    # lifetime is unreachable — nothing is going to resume executing its
+    # background task — and is reconciled to FAILED (see main.py's lifespan).
+    # This does not fix the underlying "BackgroundTasks isn't durable across
+    # restarts" limitation (see docs/scaling-to-real-genomes.md §5); it stops
+    # that limitation from presenting as a silently-stuck row forever.
+    orphaned_run_reconciliation_enabled: bool = True
+
+    # --- Cost protection (see core/rate_limit.py) ---
+    run_rate_limit_max_calls: int = 5
+    run_rate_limit_window_seconds: float = 600.0
+
     # --- Auth ---
     entra_tenant_id: str = ""
     entra_client_id: str = ""

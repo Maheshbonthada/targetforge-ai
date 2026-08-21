@@ -20,6 +20,16 @@ export function RunsListPage() {
 
   useEffect(loadRuns, []);
 
+  async function handleDelete(runId: string) {
+    if (!window.confirm("Delete this run? This cannot be undone.")) return;
+    try {
+      await api.deleteRun(runId);
+      setRuns((prev) => (prev ? prev.filter((r) => r.id !== runId) : prev));
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Could not delete this run");
+    }
+  }
+
   async function handleCreate(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
@@ -98,15 +108,25 @@ export function RunsListPage() {
       {runs && runs.length > 0 && (
         <div className="card-list">
           {runs.map((run) => (
-            <Link key={run.id} to={`/runs/${run.id}`} className="entity-card">
-              <div className="title-row">
-                <div className="title">{run.candidate_genes.join(", ")}</div>
-                <RunStatusPill status={run.status} />
-              </div>
-              <div className="meta">
-                {new Date(run.created_at).toLocaleString()} · triggered by {run.triggered_by}
-              </div>
-            </Link>
+            <div key={run.id} className="entity-card-row">
+              <Link to={`/runs/${run.id}`} className="entity-card">
+                <div className="title-row">
+                  <div className="title">{run.candidate_genes.join(", ")}</div>
+                  <RunStatusPill status={run.status} />
+                </div>
+                <div className="meta">
+                  {new Date(run.created_at).toLocaleString()} · triggered by {run.triggered_by}
+                </div>
+              </Link>
+              <button
+                type="button"
+                className="btn btn-danger-ghost"
+                title="Delete this run"
+                onClick={() => void handleDelete(run.id)}
+              >
+                Delete
+              </button>
+            </div>
           ))}
         </div>
       )}

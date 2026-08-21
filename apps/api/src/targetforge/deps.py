@@ -5,7 +5,7 @@ TrialReady's deps.py.
 
 from __future__ import annotations
 
-from fastapi import Depends
+from functools import lru_cache
 
 from targetforge.agents.alignment_agent import AlignmentOrchestrationAgent
 from targetforge.agents.annotation_agent import VariantAnnotationAgent
@@ -29,8 +29,9 @@ from targetforge.bioinformatics.variant_calling import (
     FakeVariantCallingBackend,
     VariantCallingBackend,
 )
-from targetforge.config import Settings, get_settings
+from targetforge.config import get_settings
 from targetforge.core.llm import build_llm_client
+from targetforge.core.rate_limit import SlidingWindowRateLimiter
 from targetforge.external.clinicaltrials_client import RealClinicalTrialsClient
 from targetforge.external.dgidb_client import RealDgidbClient
 from targetforge.external.ensembl_client import FakeVepClient, RealVepClient, VepClient
@@ -38,7 +39,22 @@ from targetforge.external.pubmed_client import NcbiPubMedClient
 from targetforge.orchestration.supervisor import Supervisor
 
 
-def get_supervisor(settings: Settings = Depends(get_settings)) -> Supervisor:
+@lru_cache
+def _build_supervisor() -> Supervisor:
+    """Cached singleton, same pattern as db/session.py's `get_engine()`.
+
+    Previously this construction happened fresh on every single request:
+    a new LLM SDK client (which opens its own connection pool internally)
+    and a new httpx-backed client for each of PubMed/DGIdb/ClinicalTrials.gov/
+    VEP, per request. Under concurrent load that's unbounded socket/client
+    churn for objects that are otherwise stateless and safe to share — none
+    of them hold per-request state, they're pure "here's how to call this
+    external service" wrappers. Settings are read once, at first build, via
+    the already-cached `get_settings()`; nothing here reacts to a settings
+    change mid-process, which matches how every other cached singleton in
+    this codebase (get_engine, get_session_factory) already behaves.
+    """
+    settings = get_settings()
     fast_llm = build_llm_client(settings, fast=True)
     reasoning_llm = build_llm_client(settings, fast=False)
 
@@ -89,3 +105,24 @@ def get_supervisor(settings: Settings = Depends(get_settings)) -> Supervisor:
         experiment_agent=ExperimentDesignAgent(fast_llm),
         report_agent=ReportGenerationAgent(reasoning_llm),
     )
+
+
+@lru_cache
+def get_run_rate_limiter() -> SlidingWindowRateLimiter:
+    """One process-lifetime instance — a limiter rebuilt per request would
+    never accumulate any call history and would allow, not limit, everything.
+    """
+    settings = get_settings()
+    return SlidingWindowRateLimiter(
+        max_calls=settings.run_rate_limit_max_calls, window_seconds=settings.run_rate_limit_window_seconds
+    )
+
+
+def get_supervisor() -> Supervisor:
+    """The actual FastAPI dependency — thin wrapper over the cached
+    singleton builder above. Kept as a separate public function (rather than
+    routers depending on `_build_supervisor` directly) so tests can swap it
+    via `app.dependency_overrides[get_supervisor] = ...` without reaching
+    into the private cache.
+    """
+    return _build_supervisor()

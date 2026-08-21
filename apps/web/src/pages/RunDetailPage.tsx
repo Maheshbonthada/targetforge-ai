@@ -6,23 +6,36 @@ import { RunStatusPill, StageStatusPill } from "../components/StatusPill";
 import { PIPELINE_STAGES, type RunOut, type StageStatus } from "../api/types";
 
 const POLL_INTERVAL_MS = 3000;
+// A transient blip (API redeploying, a momentary network hiccup) shouldn't
+// nuke the page back to a bare error screen if a run is already loaded and
+// genuinely still in progress — that's a worse experience than a quiet retry.
+// A terminal-looking error (404: this run doesn't exist / isn't yours; 401:
+// not signed in) is never worth retrying, since retrying can't fix it.
+const MAX_CONSECUTIVE_TRANSIENT_FAILURES = 5;
+const TERMINAL_STATUS_CODES = new Set([401, 404]);
 
 export function RunDetailPage() {
   const { runId } = useParams<{ runId: string }>();
   const [run, setRun] = useState<RunOut | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [reconnecting, setReconnecting] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (!runId) return;
     let cancelled = false;
+    let consecutiveFailures = 0;
+    let haveLoadedOnce = false;
 
     async function poll() {
       try {
         const latest = await api.getRun(runId!);
         if (cancelled) return;
+        haveLoadedOnce = true;
+        consecutiveFailures = 0;
         setRun(latest);
         setError(null);
+        setReconnecting(false);
         // Only keep polling while the run is genuinely in flight — a
         // background task on the API side (see api/routers/runs.py) is
         // still doing real work here, so this isn't just decorative.
@@ -30,7 +43,28 @@ export function RunDetailPage() {
           timerRef.current = setTimeout(poll, POLL_INTERVAL_MS);
         }
       } catch (err) {
-        if (!cancelled) setError(err instanceof ApiError ? err.message : "Failed to load run");
+        if (cancelled) return;
+        const isTerminal = err instanceof ApiError && TERMINAL_STATUS_CODES.has(err.status);
+
+        if (!haveLoadedOnce || isTerminal) {
+          // Nothing sensible to show yet, or retrying genuinely can't help —
+          // this is the one case where replacing the page with an error is
+          // the right call.
+          setError(err instanceof ApiError ? err.message : "Failed to load run");
+          return;
+        }
+
+        consecutiveFailures += 1;
+        if (consecutiveFailures > MAX_CONSECUTIVE_TRANSIENT_FAILURES) {
+          setError(err instanceof ApiError ? err.message : "Lost connection to the TargetForge API.");
+          return;
+        }
+
+        // Keep the last-known run on screen; just flag that we're retrying.
+        // Exponential backoff so a genuinely down API doesn't get hammered.
+        setReconnecting(true);
+        const backoffMs = POLL_INTERVAL_MS * Math.min(2 ** consecutiveFailures, 8);
+        timerRef.current = setTimeout(poll, backoffMs);
       }
     }
 
@@ -95,7 +129,9 @@ export function RunDetailPage() {
 
       {run.status === "running" && (
         <p className="loading-line">
-          Pipeline running — this page updates automatically every few seconds…
+          {reconnecting
+            ? "Reconnecting to the TargetForge API…"
+            : "Pipeline running — this page updates automatically every few seconds…"}
         </p>
       )}
 

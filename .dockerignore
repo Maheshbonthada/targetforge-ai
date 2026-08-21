@@ -1,0 +1,24 @@
+# Defense in depth: the Dockerfile only COPYs specific paths today (never a
+# blanket `COPY .`), so nothing here is a live leak right now — but that's
+# one Dockerfile edit away from changing, and a real secret (a live OpenAI
+# key) has sat in apps/api/.env in this exact repo tree during local dev.
+# Never rely on "the Dockerfile happens to not copy it" as the only backstop.
+
+**/.venv/
+**/__pycache__/
+**/*.pyc
+**/.pytest_cache/
+**/.mypy_cache/
+**/.ruff_cache/
+**/.env
+**/.env.*
+!**/.env.example
+
+**/node_modules/
+**/dist/
+
+.git/
+.github/
+
+**/.vscode/
+**/.idea/

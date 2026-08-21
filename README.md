@@ -98,6 +98,10 @@ this repo talks to Azure until you run it.
   explicit accounting of what's fully real vs. documented stand-in.
 - [`docs/agents.md`](docs/agents.md) — every agent's input/output/tool/LLM-use
   contract.
+- [`docs/production-readiness-audit.md`](docs/production-readiness-audit.md) —
+  a 22-angle security/reliability/cost review (auth, ownership isolation,
+  rate limiting, timeouts, dependency CVEs, and more) — what was found, what
+  was fixed, and what's deliberately deferred and why.
 - [`docs/cost-model.md`](docs/cost-model.md) — line-item Azure cost estimate,
   split by candidate-gene-list runs vs. real sequencing runs.
 - [`docs/compliance-checklist.md`](docs/compliance-checklist.md) — why genomic

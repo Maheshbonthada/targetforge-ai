@@ -34,6 +34,16 @@ handling.
 
 ## Go-live checklist (before `run_full_from_fastq` touches real subject data)
 
+- [x] **API-level authentication and per-caller isolation** — every route now
+      requires `Depends(get_current_user)` and every read/delete is scoped to
+      `triggered_by == caller`; a run belonging to a different caller returns
+      404, not the data (see `docs/production-readiness-audit.md`, findings
+      #1/#18). This was a real gap until that audit: `core/security.py`
+      existed from the start but was never wired into a router, so any
+      caller could read or delete any other caller's candidate gene lists —
+      exactly the kind of pre-publication data this section is about. Closed
+      at the API layer; the Storage-file-level item below (genomic files
+      specifically) remains open.
 - [ ] **IRB approval and informed consent** — any pipeline run against a real
       research participant's or patient's sequencing data needs an
       Institutional Review Board-approved protocol and documented informed

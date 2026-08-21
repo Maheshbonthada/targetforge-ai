@@ -242,6 +242,36 @@ button {
   gap: 0.65rem;
 }
 
+.entity-card-row {
+  display: flex;
+  align-items: stretch;
+  gap: 0.6rem;
+}
+
+.entity-card-row .entity-card {
+  flex: 1;
+  min-width: 0;
+}
+
+.btn-danger-ghost {
+  flex-shrink: 0;
+  align-self: center;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--ink-faint);
+  border-radius: var(--radius);
+  padding: 0.4rem 0.75rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-danger-ghost:hover {
+  border-color: var(--danger);
+  color: var(--danger);
+  background: var(--danger-soft);
+}
+
 .entity-card {
   display: block;
   background: var(--surface);

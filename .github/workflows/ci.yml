@@ -20,6 +20,41 @@ jobs:
       - run: pip install -e apps/api[dev]
       - run: ruff check apps/api/src apps/api/tests
       - run: mypy apps/api/src
+      - name: pip-audit (known-vulnerability scan of resolved dependencies)
+        # Non-blocking by design, not an oversight: pip-audit exits non-zero
+        # for ANY known CVE anywhere in the resolved tree, including deep
+        # transitives this project doesn't directly choose (at last audit:
+        # real findings in semantic-kernel, starlette, pytest, pyasn1 — none
+        # exploitable through anything this app actually does with them, all
+        # requiring a major-version bump of a carefully-tuned dependency to
+        # clear, which is its own dedicated upgrade-and-retest effort, not a
+        # CI-gate fix). Direct, first-party pins we control get fixed
+        # immediately when this flags them (see python-jose/python-multipart
+        # in pyproject.toml) — this step's job is to keep that finding
+        # visible in every CI run, not to block merges on transitive debt.
+        working-directory: apps/api
+        run: |
+          pip install pip-audit
+          pip freeze | grep -v -e '^-e ' -e '^targetforge' > /tmp/audit-requirements.txt
+          pip-audit -r /tmp/audit-requirements.txt || true
+
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+      - run: npm ci
+      - run: npm run build
+      - run: npm run lint
+      - name: npm audit (known-vulnerability scan, fails only on high/critical)
+        run: npm audit --audit-level=high
 
   test:
     runs-on: ubuntu-latest
@@ -50,15 +85,18 @@ jobs:
       - name: Run migrations
         working-directory: apps/api
         run: python -m alembic upgrade head
-      # No --cov-fail-under gate yet: only the pure bioinformatics unit tests
-      # exist today (agent-level tests with FakeLlmClient, and DB-backed
-      # integration tests, are tracked in docs/runbook.md's "Not yet built").
-      # Add the coverage gate once those exist, rather than picking an
-      # arbitrary number that either blocks on missing tests or is trivially
-      # satisfied by what's here now.
-      - name: Unit tests
+      # 75%, not a rounder/higher number: measured actual coverage was 80% at
+      # the point this gate was added (bioinformatics unit tests + agent-level
+      # tests against FakeLlmClient/fake external clients + DB-backed
+      # integration tests, including the HTTP router layer in
+      # tests/integration/test_runs_api.py). 75 leaves headroom for
+      # legitimately hard-to-cover branches (e.g. the real Azure Batch/VEP
+      # code paths — see bioinformatics/alignment.py's docstring on why
+      # those aren't exercised in this sandbox) without the gate being
+      # either a no-op or an immediate false-positive failure.
+      - name: Unit + integration tests
         working-directory: apps/api
-        run: python -m pytest -q --cov=targetforge --cov-report=xml
+        run: python -m pytest -q --cov=targetforge --cov-report=xml --cov-report=term-missing --cov-fail-under=75
       - uses: actions/upload-artifact@v4
         with:
           name: coverage
@@ -88,3 +126,15 @@ jobs:
         run: |
           az bicep build --file infra/bicep/main.bicep --stdout > /dev/null
         shell: bash
+
+  secret-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # gitleaks scans full history, not just the current tree — a secret
+          # committed once and later deleted is still a leaked secret.
+      - name: gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

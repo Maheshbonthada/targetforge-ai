@@ -110,7 +110,20 @@ additive/backward-compatible for the same reason as TrialReady's stack.
   `docs/scaling-to-real-genomes.md` §5 — this is the known limitation of the
   current execution model, not a mystery to debug from scratch each time).
   Check Container Apps revision history for a restart around the run's
-  `created_at` timestamp.
+  `created_at` timestamp. On the next process startup, any such row is
+  automatically reconciled to `FAILED` (`main.py`'s
+  `_reconcile_orphaned_runs`) — it will not silently stay "running" forever,
+  but it also will not resume; the run has to be resubmitted.
+- A burst of `429 Too Many Requests` on `POST /runs` from one caller is the
+  rate limiter (`core/rate_limit.py`) doing its job, not a bug — check
+  `Settings.run_rate_limit_max_calls`/`run_rate_limit_window_seconds` before
+  assuming something's broken. Remember it's in-process and per-replica; at
+  more than one replica it under-counts (see that module's docstring).
+- A run taking noticeably longer than usual and then failing with "exceeded
+  the Ns time budget" is the wall-clock timeout (`Settings.run_timeout_seconds`,
+  default 900s) — check whether an external API (PubMed/DGIdb/ClinicalTrials.gov/
+  OpenAI) was degraded around that time before assuming the pipeline itself
+  regressed.
 - Application Insights end-to-end transaction view traces a single run from
   the API through to the exact PubMed/DGIdb/ClinicalTrials.gov/OpenAI call
   that was slow.
@@ -121,5 +134,16 @@ additive/backward-compatible for the same reason as TrialReady's stack.
   built and proven locally (real API, real browser, Playwright-verified) but
   has no `infra/bicep` module or CD job deploying it yet; TrialReady's
   `static-web-app.bicep` + `web-cd.yml` are a direct template to adapt.
+- **A real login flow for the frontend.** Every API route now requires
+  authentication (`docs/production-readiness-audit.md`, finding #1) unless
+  `AUTH_DISABLED_FOR_LOCAL_DEV=true` — which is what local dev runs against,
+  so nothing above changes today. But the frontend has no MSAL/Entra sign-in
+  built, so it cannot successfully call a real deployment
+  (`AUTH_DISABLED_FOR_LOCAL_DEV=false`, the `bicep` default) until one
+  exists. Deploying the frontend as-is against a production API would show
+  every request failing with 401 — that's expected given the current state,
+  not a bug to chase.
 - The real upload path and queue-based execution model in
   `docs/scaling-to-real-genomes.md`.
+- Idempotency keys on `POST /runs` and per-run token-usage tracking — see
+  `docs/production-readiness-audit.md`, findings #7 and #9.
