@@ -11,6 +11,51 @@ experiment for each one.
 See [`ARCHITECTURE.md`](ARCHITECTURE.md) for the full design and
 [`docs/agents.md`](docs/agents.md) for every agent's exact contract.
 
+## Architecture at a glance
+
+```mermaid
+flowchart TD
+    Input(["🧬 Raw FASTQ / VCF, or a candidate gene list"]) --> A1
+
+    subgraph Compute["⚙️ Compute-stage agents — deterministic tools; LLM only to summarize"]
+        A1["1 · QC Agent<br/>FastQC / MultiQC"] --> A2["2 · Alignment Orchestration<br/>BWA-MEM2 on Azure Batch"]
+        A2 --> A3["3 · Variant Calling<br/>GATK / DeepVariant"]
+        A3 --> A4["4 · Variant Annotation<br/>VEP + ClinVar / gnomAD"]
+        A4 --> A5["5 · Cohort / Association<br/>case-vs-control statistics"]
+        A5 --> A6["6 · Pathway Enrichment<br/>KEGG / Reactome / GO"]
+    end
+
+    A6 --> A7
+    A6 --> A8
+
+    subgraph Reasoning["🧠 Reasoning-stage agents — genuinely LLM-driven"]
+        A7["7 · Literature Mining<br/>PubMed / bioRxiv"]
+        A8["8 · Druggability Assessment<br/>DGIdb / ChEMBL / Open Targets"]
+        A7 --> A9["9 · Competitive Intelligence<br/>ClinicalTrials.gov / patents"]
+        A8 --> A9
+        A9 --> A10["10 · Target Prioritization<br/>ranked, weighted list"]
+        A10 --> A11["11 · Experiment Design"]
+        A11 --> A12["12 · Report Generation<br/>cited, structured report"]
+    end
+
+    A12 --> Output(["📄 Ranked, cited target-discovery report"])
+    Supervisor["🧭 13 · Supervisor Agent<br/>orchestrates every handoff, persists run state"] -.-> A1
+    Supervisor -.-> A6
+    Supervisor -.-> A9
+    Supervisor -.-> A12
+
+    classDef compute fill:#dbeafe,stroke:#3b82f6,stroke-width:1.5px,color:#1e3a8a
+    classDef reasoning fill:#ede9fe,stroke:#8b5cf6,stroke-width:1.5px,color:#4c1d95
+    classDef endpoint fill:#dcfce7,stroke:#22c55e,stroke-width:1.5px,color:#14532d
+    classDef supervisor fill:#f1f5f9,stroke:#64748b,stroke-width:1.5px,stroke-dasharray:4 3,color:#334155
+    class A1,A2,A3,A4,A5,A6 compute
+    class A7,A8,A9,A10,A11,A12 reasoning
+    class Input,Output endpoint
+    class Supervisor supervisor
+```
+
+Full per-agent contracts (inputs/outputs/tools/LLM usage) in [`docs/agents.md`](docs/agents.md); the reasoning behind the compute/reasoning split in [`ARCHITECTURE.md`](ARCHITECTURE.md).
+
 ## Status
 
 **Pre-launch codebase, proven end-to-end — backend and frontend both.** The
