@@ -11,7 +11,7 @@ dependencies = [
     "pydantic-settings==2.5.2",
     "sqlalchemy==2.0.35",
     "alembic==1.13.3",
-    "asyncpg==0.29.0",
+    "asyncpg==0.31.0",
     "psycopg[binary]==3.2.2",
     "semantic-kernel==1.9.0",
     "azure-identity==1.17.1",
