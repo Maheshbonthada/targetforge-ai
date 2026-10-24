@@ -107,7 +107,7 @@ jobs:
     needs: [lint-and-typecheck, test]
     steps:
       - uses: actions/checkout@v4
-      - uses: docker/setup-buildx-action@v3
+      - uses: docker/setup-buildx-action@v4
       - name: Build image (not pushed — CI validates the build only)
         uses: docker/build-push-action@v6
         with:
